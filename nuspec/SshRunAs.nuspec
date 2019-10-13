@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <metadata xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+    <id>SshRunAs</id>
+    <version>0.0.0</version> <!-- Set during build. -->
+    <authors>Seth Hendrick</authors>
+    <description>Allows one to run commands via SSH automatically while specifying a username/password.</description>
+    <summary>Allows one to run commands via SSH automatically while specifying a username/password.</summary>
+    <license type="expression">BSL-1.0</license>
+    <projectUrl>https://github.com/xforever1313/SshRunAs</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <repository type="git" url="https://github.com/xforever1313/SshRunAs.git"/>
+    <copyright>Copyright (c) Seth Hendrick</copyright>
+    <tags>xforever1313 ssh runas password sshpass windows</tags>
+  </metadata>
+  <files>
+  </files>
+</package>
