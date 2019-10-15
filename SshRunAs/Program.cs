@@ -106,9 +106,6 @@ namespace SshRunAs
                     using ( SshRunner runner = new SshRunner( actualConfig, logger ) )
                     {
                         int exitCode = runner.RunSsh();
-
-                        Console.WriteLine( "SSH Exited with exit code " + exitCode );
-
                         return exitCode;
                     }
                 }
