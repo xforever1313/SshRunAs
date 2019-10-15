@@ -22,6 +22,8 @@ namespace SshRunAs
 
         private readonly SshConfig config;
         private readonly GenericLogger logger;
+        private bool keepGoing;
+        private readonly object keepGoingLock;
 
         private Thread stdOutThread;
         private Thread stdErrThread;
@@ -32,9 +34,31 @@ namespace SshRunAs
         {
             this.config = config;
             this.logger = logger;
+
+            this.keepGoing = false;
+            this.keepGoingLock = new object();
         }
+        
 
         // ---------------- Properties ----------------
+
+        private bool KeepGoing
+        {
+            get
+            {
+                lock ( this.keepGoingLock )
+                {
+                    return this.keepGoing;
+                }
+            }
+            set
+            {
+                lock ( this.keepGoingLock )
+                {
+                    this.keepGoing = value;
+                }
+            }
+        }
 
         // ---------------- Functions ----------------
 
@@ -52,19 +76,32 @@ namespace SshRunAs
 
                 using ( SshCommand command = client.CreateCommand( this.config.Command ) )
                 {
-                    this.stdOutThread = new Thread( () => this.StdOutThreadEntry( command ) );
-                    this.stdErrThread = new Thread( () => this.StdErrThreadEntry( command ) );
+                    // Use threads, one for stdout and stderror.
+                    // We *could* just put in a while loop between the Begin and End call,
+                    // but then we only read from stdout, then only read from stderr, which means
+                    // we may get stderr before stdout, but won't get printed real-time.
+                    // (Assuming I understand how this thing works under the hood).
+                    this.stdOutThread = new Thread(
+                        () => this.ThreadEntry( command.OutputStream, "stdout", Console.OpenStandardOutput )
+                    );
 
+                    this.stdErrThread = new Thread(
+                        () => this.ThreadEntry( command.ExtendedOutputStream, "stderr", Console.OpenStandardError )
+                    );
+
+                    this.keepGoing = true;
                     IAsyncResult task = command.BeginExecute();
 
                     this.stdOutThread.Start();
                     this.stdErrThread.Start();
 
+                    command.EndExecute( task );
+
+                    // Stop the threads.
+                    this.KeepGoing = false;
+
                     this.stdOutThread.Join();
                     this.stdErrThread.Join();
-
-                    // For some reason, calling command.EndExecute(task) causes the application to hang..
-                    // odd
 
                     int exitStatus = command.ExitStatus;
 
@@ -81,52 +118,31 @@ namespace SshRunAs
             this.CancelThread( this.stdErrThread );
         }
 
-        private void StdOutThreadEntry( SshCommand command )
+        private void ThreadEntry( Stream inputStream, string context, Func<Stream> streamFunc )
         {
+            int spinCount = 0;
             try
             {
-                using ( StreamReader reader = new StreamReader( command.OutputStream ) )
+                using ( Stream outputStream = streamFunc() )
                 {
-                    string line = reader.ReadLine();
-                    while ( line != null )
+                    while ( this.KeepGoing )
                     {
-                        this.logger.WriteLine( line );
-                        line = reader.ReadLine();
+                        inputStream.CopyTo( outputStream );
+
+                        // Some sanity so we don't burn through CPU.
+                        Thread.Sleep( 500 );
+                        ++spinCount;
                     }
                 }
             }
             catch ( Exception e )
             {
-                logger.WarningWriteLine( "StdOut thread Errored: " + e.Message );
+                logger.WarningWriteLine( $"{context} thread Errored: " + e.Message );
             }
             finally
             {
-                logger.WarningWriteLine( 1, "StdOut thread exited." );
-            }
-        }
-
-        private void StdErrThreadEntry( SshCommand command )
-        {
-            try
-            {
-                using ( StreamReader reader = new StreamReader( command.ExtendedOutputStream ) )
-                {
-                    string line = reader.ReadLine();
-                    while ( line != null )
-                    {
-                        this.logger.ErrorWriteLine( line );
-                        line = reader.ReadLine();
-                    }
-                }
-            }
-
-            catch ( Exception e )
-            {
-                logger.WarningWriteLine( "StdErr thread Errored: " + e.Message );
-            }
-            finally
-            {
-                logger.WarningWriteLine( 1, "StdErr thread exited" );
+                logger.WarningWriteLine( 1, $"{context} thread exited" );
+                logger.WarningWriteLine( 2, $"{context} thread spun this many times: " + spinCount );
             }
         }
 
