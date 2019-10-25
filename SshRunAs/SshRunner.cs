@@ -64,7 +64,9 @@ namespace SshRunAs
                             while ( task.IsCompleted == false )
                             {
                                 command.OutputStream.CopyTo( stdOut );
+                                stdOut.Flush();
                                 command.ExtendedOutputStream.CopyTo( stdErr );
+                                stdErr.Flush();
                                 ++spinCount;
 
                                 // So we don't burn through CPU.
