@@ -44,7 +44,7 @@ namespace SshRunAs
         {
             this.config.Validate();
 
-            using( SshClient client = new SshClient( this.config.Server, this.config.UserName, this.config.Password ) )
+            using( SshClient client = new SshClient( this.config.Server, this.config.Port, this.config.UserName, this.config.Password ) )
             {
                 client.Connect();
 

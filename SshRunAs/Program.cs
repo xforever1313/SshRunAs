@@ -66,12 +66,27 @@ namespace SshRunAs
                     },
                     {
                         "v=|verbosity=",
-                        $"The verbosity of the output.  0 for no messages from SshRunAs.  Defaulted to 0",
+                        $"The verbosity of the output.  0 for no messages from SshRunAs.  Defaulted to 0.",
                         v =>
                         {
                             if( int.TryParse( v, out verbosity ) == false )
                             {
                                 throw new ArgumentException( "Verbosity must be an integer" );
+                            }
+                        }
+                    },
+                    {
+                        "P=|port=",
+                        $"The port to connect to.  Defaulted to {defaultConfig.Port}.",
+                        v =>
+                        {
+                            if( ushort.TryParse( v, out ushort port ) )
+                            {
+                                actualConfig.Port = port;
+                            }
+                            else
+                            {
+                                throw new ArgumentException( "Port must be an unsigned int" );
                             }
                         }
                     }
@@ -81,7 +96,7 @@ namespace SshRunAs
 
                 if ( showHelp )
                 {
-                    Console.WriteLine( "Usage:  SshRunAs -s server -u userEnvVar -p passwordEnvVar -c command" );
+                    Console.WriteLine( "Usage:  SshRunAs -s server -u userEnvVar -p passwordEnvVar -c command [-P port]" );
                     options.WriteOptionDescriptions( Console.Out );
                     Console.WriteLine();
                     Console.WriteLine( "Have an issue? Need more help? File an issue: https://github.com/xforever1313/SSHPass.Net" );
@@ -101,7 +116,7 @@ namespace SshRunAs
                     logger.OnErrorWriteLine += Logger_OnErrorWriteLine;
                     logger.OnWarningWriteLine += Logger_OnWarningWriteLine;
 
-                    logger.WarningWriteLine( $"Running '{actualConfig.Command}' using password stored in '{actualConfig.PasswordEnvVarName}'" );
+                    logger.WarningWriteLine( $"Running '{actualConfig.Command}' using password stored in '{actualConfig.PasswordEnvVarName}' on {actualConfig.Server}:{actualConfig.Port}" );
 
                     using ( SshRunner runner = new SshRunner( actualConfig, logger ) )
                     {

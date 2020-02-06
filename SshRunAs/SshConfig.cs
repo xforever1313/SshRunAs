@@ -26,6 +26,7 @@ namespace SshRunAs
             this.Command = string.Empty;
             this.UserNameEnvVarName = string.Empty;
             this.PasswordEnvVarName = string.Empty;
+            this.Port = 22;
         }
 
         // ---------------- Properties ----------------
@@ -65,6 +66,11 @@ namespace SshRunAs
         /// The server to connect to.
         /// </summary>
         public string Server { get; set; }
+
+        /// <summary>
+        /// Port to connect to.  Defaulted to 22.
+        /// </summary>
+        public ushort Port { get; set; }
 
         // ---------------- Functions ----------------
 
