@@ -59,20 +59,25 @@ namespace SshRunAs
                     // https://github.com/sshnet/SSH.NET/blob/7691cb0b55f5e0de8dc2ad48dd824419471ab710/src/Renci.SshNet.Tests/Classes/SshCommandTest.cs#L99
                     int spinCount = 0;
 
-                    while( task.IsCompleted == false )
+                    using( Stream consoleErr = Console.OpenStandardError() )
                     {
-                        WriteToStream( command.OutputStream, Console.OpenStandardOutput );
-                        WriteToStream( command.ExtendedOutputStream, Console.OpenStandardError );
-                        ++spinCount;
+                        using( Stream consoleOut = Console.OpenStandardOutput() )
+                        {
+                            while( task.IsCompleted == false )
+                            {
+                                WriteToStream( command.OutputStream, consoleOut );
+                                WriteToStream( command.ExtendedOutputStream, consoleErr );
+                                ++spinCount;
 
-                        // So we don't burn through CPU.
-                        Thread.Sleep( 500 );
+                                // So we don't burn through CPU.
+                                Thread.Sleep( 500 );
+                            }
+
+                            // One more read so we don't miss any characters.
+                            WriteToStream( command.OutputStream, consoleOut );
+                            WriteToStream( command.ExtendedOutputStream, consoleErr );
+                        }
                     }
-
-                    // One more read so we don't miss any characters.
-                    WriteToStream( command.OutputStream, Console.OpenStandardOutput );
-                    WriteToStream( command.ExtendedOutputStream, Console.OpenStandardError );
-
                     command.EndExecute( task );
 
                     int exitStatus = command.ExitStatus;
@@ -85,14 +90,12 @@ namespace SshRunAs
             }
         }
 
-        private void WriteToStream( Stream inputStream, Func<Stream> outputStream )
+        private void WriteToStream( Stream inputStream, Stream outputStream )
         {
-            using( Stream ostream = outputStream() )
-            {
-                // Literally no idea why, but CopyTo does not work, but CopyToAsync.Wait() does????
-                // Shouldn't it literally do the same thing??
-                inputStream.CopyToAsync( ostream, 255 ).Wait();
-            }
+            // Literally no idea why, but CopyTo does not work, but CopyToAsync.Wait() does????
+            // Shouldn't it literally do the same thing??
+            inputStream.CopyToAsync( outputStream ).Wait();
+            outputStream.FlushAsync().Wait();
         }
 
         public void Dispose()
