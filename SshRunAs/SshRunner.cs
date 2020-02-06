@@ -6,6 +6,7 @@
 //
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using Renci.SshNet;
@@ -30,7 +31,7 @@ namespace SshRunAs
             this.config = config;
             this.logger = logger;
         }
-        
+
         // ---------------- Properties ----------------
 
         // ---------------- Functions ----------------
@@ -43,11 +44,11 @@ namespace SshRunAs
         {
             this.config.Validate();
 
-            using ( SshClient client = new SshClient( this.config.Server, this.config.UserName, this.config.Password ) )
+            using( SshClient client = new SshClient( this.config.Server, this.config.UserName, this.config.Password ) )
             {
                 client.Connect();
 
-                using ( SshCommand command = client.CreateCommand( this.config.Command ) )
+                using( SshCommand command = client.CreateCommand( this.config.Command ) )
                 {
                     IAsyncResult task = command.BeginExecute();
 
@@ -57,27 +58,20 @@ namespace SshRunAs
                     // working??
                     // https://github.com/sshnet/SSH.NET/blob/7691cb0b55f5e0de8dc2ad48dd824419471ab710/src/Renci.SshNet.Tests/Classes/SshCommandTest.cs#L99
                     int spinCount = 0;
-                    using ( Stream stdOut = Console.OpenStandardOutput() )
+
+                    while( task.IsCompleted == false )
                     {
-                        using ( Stream stdErr = Console.OpenStandardError() )
-                        {
-                            while ( task.IsCompleted == false )
-                            {
-                                command.OutputStream.CopyTo( stdOut );
-                                stdOut.Flush();
-                                command.ExtendedOutputStream.CopyTo( stdErr );
-                                stdErr.Flush();
-                                ++spinCount;
+                        WriteToStream( command.OutputStream, Console.OpenStandardOutput );
+                        WriteToStream( command.ExtendedOutputStream, Console.OpenStandardError );
+                        ++spinCount;
 
-                                // So we don't burn through CPU.
-                                Thread.Sleep( 500 );
-                            }
-
-                            // One more read so we don't miss any characters.
-                            command.OutputStream.CopyTo( stdOut );
-                            command.ExtendedOutputStream.CopyTo( stdErr );
-                        }
+                        // So we don't burn through CPU.
+                        Thread.Sleep( 500 );
                     }
+
+                    // One more read so we don't miss any characters.
+                    WriteToStream( command.OutputStream, Console.OpenStandardOutput );
+                    WriteToStream( command.ExtendedOutputStream, Console.OpenStandardError );
 
                     command.EndExecute( task );
 
@@ -88,6 +82,16 @@ namespace SshRunAs
 
                     return exitStatus;
                 }
+            }
+        }
+
+        private void WriteToStream( Stream inputStream, Func<Stream> outputStream )
+        {
+            using( Stream ostream = outputStream() )
+            {
+                // Literally no idea why, but CopyTo does not work, but CopyToAsync.Wait() does????
+                // Shouldn't it literally do the same thing??
+                inputStream.CopyToAsync( ostream, 255 ).Wait();
             }
         }
 
