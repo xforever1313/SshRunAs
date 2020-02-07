@@ -9,6 +9,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using Renci.SshNet;
 using SethCS.Basic;
 
@@ -52,50 +53,50 @@ namespace SshRunAs
                 {
                     IAsyncResult task = command.BeginExecute();
 
-                    // Polling appears to be the only thing to do when printing stuff to the console.
-                    // Gross.
-                    // But, something similar is literally in SSH.Net's example.  I guess they don't have events
-                    // working??
-                    // https://github.com/sshnet/SSH.NET/blob/7691cb0b55f5e0de8dc2ad48dd824419471ab710/src/Renci.SshNet.Tests/Classes/SshCommandTest.cs#L99
-                    int spinCount = 0;
+                    // Using tasks seems to print things to the console better; it doesn't all just bunch up at the end.
+                    Task stdOutTask = AsyncWriteToStream( Console.OpenStandardOutput, command.OutputStream, task );
+                    Task stdErrTask = AsyncWriteToStream( Console.OpenStandardError, command.ExtendedOutputStream, task );
 
-                    using( Stream consoleErr = Console.OpenStandardError() )
-                    {
-                        using( Stream consoleOut = Console.OpenStandardOutput() )
-                        {
-                            while( task.IsCompleted == false )
-                            {
-                                WriteToStream( command.OutputStream, consoleOut );
-                                WriteToStream( command.ExtendedOutputStream, consoleErr );
-                                ++spinCount;
+                    Task.WaitAll( stdOutTask, stdErrTask );
 
-                                // So we don't burn through CPU.
-                                Thread.Sleep( 500 );
-                            }
-
-                            // One more read so we don't miss any characters.
-                            WriteToStream( command.OutputStream, consoleOut );
-                            WriteToStream( command.ExtendedOutputStream, consoleErr );
-                        }
-                    }
                     command.EndExecute( task );
 
                     int exitStatus = command.ExitStatus;
 
                     this.logger.WarningWriteLine( 1, "Process exited with exit code: " + exitStatus );
-                    this.logger.WarningWriteLine( 2, "Stream check polled this many times: " + spinCount );
 
                     return exitStatus;
                 }
             }
         }
 
-        private void WriteToStream( Stream inputStream, Stream outputStream )
+        private Task AsyncWriteToStream( Func<Stream> oStreamAction, Stream iStream, IAsyncResult sshTask )
         {
-            // Literally no idea why, but CopyTo does not work, but CopyToAsync.Wait() does????
-            // Shouldn't it literally do the same thing??
-            inputStream.CopyToAsync( outputStream ).Wait();
-            outputStream.FlushAsync().Wait();
+            return Task.Run(
+                async delegate()
+                {
+                    try
+                    {
+                        using( Stream oStream = oStreamAction() )
+                        {
+                            while( sshTask.IsCompleted == false )
+                            {
+                                await iStream.CopyToAsync( oStream );
+                                await oStream.FlushAsync();
+                                await Task.Delay( 500 ); // So we don't burn through CPU.
+                            }
+
+                            // One more loop so we don't miss any last-minute output:
+                            await iStream.CopyToAsync( oStream );
+                            await oStream.FlushAsync();
+                        }
+                    }
+                    catch( Exception e )
+                    {
+                        this.logger.ErrorWriteLine( "An output stream has failed.  Output will stop, but the task is still running: " + e.Message );
+                    }
+                }
+            );
         }
 
         public void Dispose()
