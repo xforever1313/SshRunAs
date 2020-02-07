@@ -10,7 +10,7 @@ DirectoryPath distFolder = MakeAbsolute( new DirectoryPath( "./dist" ) );
 
 // This is the version of this software,
 // update before making a new release.
-const string version = "1.2.0";
+const string version = "1.3.0";
 
 DotNetCoreMSBuildSettings msBuildSettings = new DotNetCoreMSBuildSettings();
 
