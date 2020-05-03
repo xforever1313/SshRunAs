@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- Do not remove this test for UTF-8: if “Ω” doesn’t appear as greek uppercase omega letter enclosed in quotation marks, you should use an editor that supports UTF-8, not this one. -->
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <!-- == PACKAGE SPECIFIC SECTION == -->
+    <id>sshrunas</id>
+    <version>0.0.0</version> <!-- Set during pack time -->
+    <packageSourceUrl>https://github.com/xforever1313/SshRunAs</packageSourceUrl>
+    <owners>Seth Hendrick</owners>
+
+    <!-- == SOFTWARE SPECIFIC SECTION == -->
+    <title>SshRunAs (Install)</title>
+    <authors>Seth Hendrick</authors>
+    <projectUrl>https://github.com/xforever1313/SshRunAs</projectUrl>
+    <copyright>2020</copyright>
+    <licenseUrl>https://raw.githubusercontent.com/xforever1313/SshRunAs/master/LICENSE_1_0.txt</licenseUrl>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <projectSourceUrl>https://github.com/xforever1313/SshRunAs</projectSourceUrl>
+    <bugTrackerUrl>https://github.com/xforever1313/SshRunAs/issues</bugTrackerUrl>
+    <tags>sshrunas ssh runas windows xforever1313 admin</tags>
+    <summary>Run a process via SSH and a user can pass in a username/password.</summary>
+    <description>See Readme: https://github.com/xforever1313/SshRunAs/blob/master/Readme.md</description>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>
+ 

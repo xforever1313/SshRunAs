@@ -1,8 +1,11 @@
+using System.Text.RegularExpressions;
+
 const string buildTarget = "build";
 const string buildReleaseTarget = "build_release";
 const string makeDistTarget = "make_dist";
 const string nugetPackTarget = "nuget_pack";
 const string buildMsiTarget = "build_msi";
+const string chocoPackTarget = "choco_pack";
 
 string target = Argument( "target", buildTarget );
 
@@ -12,6 +15,8 @@ DirectoryPath installFolder = MakeAbsolute( new DirectoryPath( "./Install" ) );
 DirectoryPath wixDir = installFolder.Combine( Directory( "WiX" ) );
 DirectoryPath msiWorkDir = wixDir.Combine( Directory( "obj" ) );
 DirectoryPath msiOutputDir = wixDir.Combine( Directory( "bin" ) );
+FilePath msiPath = msiOutputDir.CombineWithFilePath( "SshRunAs.msi" );
+FilePath msiShaFile = File( msiPath.ToString() + ".sha256" );
 
 // This is the version of this software,
 // update before making a new release.
@@ -176,7 +181,7 @@ Does(
         LightSettings lightSettings = new LightSettings
         {
             RawArguments = $"-ext WixUIExtension -cultures:en-us -b {distFolder.ToString()}",
-            OutputFile = msiOutputDir.CombineWithFilePath( $"SshRunAs.msi" ),
+            OutputFile = msiPath,
             ToolPath = @"C:\Program Files (x86)\WiX Toolset v3.11\bin\light.exe"
         };
 
@@ -190,12 +195,63 @@ Does(
         );
         string hashStr = hash.ToHex();
         System.IO.File.WriteAllText(
-            lightSettings.OutputFile.ToString() + ".sha256",
+            msiShaFile.ToString(),
             hashStr
         );
         Information( "Hash for " + lightSettings.OutputFile.GetFilename() + ": " + hashStr );
     }
 ).Description( "Builds the Windows MSI.  This requires WiX to be installed" )
 .IsDependentOn( makeDistTarget );
+
+Task( chocoPackTarget )
+.Does(
+    () =>
+    {
+        DirectoryPath chocoDir = installFolder.Combine( "Chocolatey" );
+        DirectoryPath outputDirectory = chocoDir.Combine( "bin" );
+        FilePath chocoNuspec = chocoDir.CombineWithFilePath( "sshrunas.nuspec" );
+        FilePath installScript = chocoDir.CombineWithFilePath( "tools/chocolateyinstall.ps1" );
+
+        EnsureDirectoryExists( outputDirectory );
+        CleanDirectory( outputDirectory );
+
+        // First, need to set the checksum of the MSI file.
+        string checksum = System.IO.File.ReadAllText( msiShaFile.ToString() ).Trim();
+
+        Regex checksumLineRegex = new Regex(
+            @"checksum64\s*=\s*'.+'",
+            RegexOptions.Compiled | RegexOptions.ExplicitCapture
+        );
+        List<string> lines = new List<string>();
+        foreach( string line in System.IO.File.ReadAllLines( installScript.ToString() ) )
+        {
+            if( checksumLineRegex.IsMatch( line ) )
+            {
+                lines.Add(
+                    $"  checksum64    = '{checksum}'"
+                );
+            }
+            else
+            {
+                lines.Add( line );
+            }
+        }
+        System.IO.File.WriteAllLines( installScript.ToString(), lines );
+
+        // With our checksum set, pack it!
+        ChocolateyPackSettings settings = new ChocolateyPackSettings
+        {
+            OutputDirectory = outputDirectory,
+            WorkingDirectory = chocoDir,
+            Version = version
+        };
+
+        ChocolateyPack(
+            chocoNuspec,
+            settings
+        );
+    }
+).Description( "Creates the Chocolatey Package" )
+.IsDependentOn( buildMsiTarget );
 
 RunTarget( target );
