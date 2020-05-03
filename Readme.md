@@ -5,6 +5,7 @@ SshRunAs allows one to run a command on a remote or local machine as a different
 The advantage of SshRunAs is unlike OpenSSH, you can pass in a raw password to this program.
 
 [![NuGet](https://img.shields.io/nuget/v/SshRunAs-Win-x64.svg)](https://www.nuget.org/packages/SshRunAs-Win-x64/)
+[![Chocolatey](https://img.shields.io/chocolatey/v/sshrunas.svg)](https://chocolatey.org/packages/sshrunas/)
 
 Use Cases
 -----
