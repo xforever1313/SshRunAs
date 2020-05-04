@@ -8,6 +8,7 @@ const string buildMsiTarget = "build_msi";
 const string chocoPackTarget = "choco_pack";
 
 string target = Argument( "target", buildTarget );
+bool noBuild = Argument<bool>( "no_build", false );
 
 FilePath sln = new FilePath( "./SshRunAs.sln" );
 DirectoryPath distFolder = MakeAbsolute( new DirectoryPath( "./dist" ) );
@@ -203,7 +204,7 @@ Does(
 ).Description( "Builds the Windows MSI.  This requires WiX to be installed" )
 .IsDependentOn( makeDistTarget );
 
-Task( chocoPackTarget )
+var chocoTask = Task( chocoPackTarget )
 .Does(
     () =>
     {
@@ -251,7 +252,11 @@ Task( chocoPackTarget )
             settings
         );
     }
-).Description( "Creates the Chocolatey Package" )
-.IsDependentOn( buildMsiTarget );
+).Description( "Creates the Chocolatey Package" );
+
+if( noBuild == false )
+{
+    chocoTask.IsDependentOn( buildMsiTarget );
+}
 
 RunTarget( target );
