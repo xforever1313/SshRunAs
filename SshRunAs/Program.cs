@@ -9,6 +9,7 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using Mono.Options;
 using SethCS.Basic;
 
@@ -133,39 +134,62 @@ namespace SshRunAs
                 }
                 else
                 {
-                    GenericLogger logger = new GenericLogger( verbosity );
-                    try
+                    using( CancellationTokenSource cancelToken = new CancellationTokenSource() )
                     {
-                        logger.OnWriteLine += Logger_OnWriteLine;
-                        logger.OnErrorWriteLine += Logger_OnErrorWriteLine;
-                        logger.OnWarningWriteLine += Logger_OnWarningWriteLine;
+                        GenericLogger logger = new GenericLogger( verbosity );
 
-                        logger.WarningWriteLine( $"Running '{actualConfig.Command}' using password stored in '{actualConfig.PasswordEnvVarName}' on {actualConfig.Server}:{actualConfig.Port}" );
-
-                        using( SshRunner runner = new SshRunner( actualConfig, logger ) )
+                        ConsoleCancelEventHandler onCtrlC = delegate ( object sender, ConsoleCancelEventArgs cancelArgs )
                         {
-                            int exitCode = runner.RunSsh();
-                            return exitCode;
+                            // Wait for the process to end gracefully if we get CTRL+C,
+                            // otherwise, let it die without clean up if we get CTRL+Break.
+                            if( cancelArgs.SpecialKey == ConsoleSpecialKey.ControlC )
+                            {
+                                cancelArgs.Cancel = true;
+                                logger.WarningWriteLine( 1, "CTRL+C was received, cleaning up..." );
+                                cancelToken.Cancel();
+                            }
+                        };
+
+                        try
+                        {
+                            Console.CancelKeyPress += onCtrlC;
+                            logger.OnWriteLine += Logger_OnWriteLine;
+                            logger.OnErrorWriteLine += Logger_OnErrorWriteLine;
+                            logger.OnWarningWriteLine += Logger_OnWarningWriteLine;
+
+                            logger.WarningWriteLine( $"Running '{actualConfig.Command}' using password stored in '{actualConfig.PasswordEnvVarName}' on {actualConfig.Server}:{actualConfig.Port}" );
+
+                            using( SshRunner runner = new SshRunner( actualConfig, logger ) )
+                            {
+                                int exitCode = runner.RunSsh( cancelToken.Token );
+                                return exitCode;
+                            }
                         }
-                    }
-                    finally
-                    {
-                        logger.OnWriteLine -= Logger_OnWriteLine;
-                        logger.OnErrorWriteLine -= Logger_OnErrorWriteLine;
-                        logger.OnWarningWriteLine -= Logger_OnWarningWriteLine;
+                        finally
+                        {
+                            Console.CancelKeyPress -= onCtrlC;
+                            logger.OnWriteLine -= Logger_OnWriteLine;
+                            logger.OnErrorWriteLine -= Logger_OnErrorWriteLine;
+                            logger.OnWarningWriteLine -= Logger_OnWarningWriteLine;
+                        }
                     }
                 }
 
                 return 0;
             }
-            catch ( OptionException e )
+            catch( OptionException e )
             {
                 Console.WriteLine( "Invalid Arguments: " + e.Message );
                 Console.WriteLine();
 
                 return 1;
             }
-            catch ( Exception e )
+            catch( OperationCanceledException e )
+            {
+                Console.WriteLine( e.Message );
+                return 2;
+            }
+            catch( Exception e )
             {
                 Console.WriteLine( "Unexpected Exception: " );
                 Console.WriteLine( e.Message );
