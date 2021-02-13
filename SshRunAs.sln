@@ -3,13 +3,14 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29326.143
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SshRunAs", "SshRunAs\SshRunAs.csproj", "{57D94522-D94C-453E-8E4D-3FC7B369286A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SshRunAs", "SshRunAs\SshRunAs.csproj", "{57D94522-D94C-453E-8E4D-3FC7B369286A}"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "SethCS", "SethCS\SethCS\SethCS.shproj", "{52089274-B9A2-4A47-A221-C321DEE1CE7F}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		SethCS\SethCS\SethCS.projitems*{52089274-b9a2-4a47-a221-c321dee1ce7f}*SharedItemsImports = 13
+		SethCS\SethCS\SethCS.projitems*{57d94522-d94c-453e-8e4d-3fc7b369286a}*SharedItemsImports = 5
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
