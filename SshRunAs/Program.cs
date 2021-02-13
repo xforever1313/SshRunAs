@@ -114,6 +114,10 @@ namespace SshRunAs
                     Console.WriteLine( "Usage:  SshRunAs -s server -u userEnvVar -p passwordEnvVar -c command [-P port]" );
                     options.WriteOptionDescriptions( Console.Out );
                     Console.WriteLine();
+                    Console.WriteLine( "Exiting early:" );
+                    Console.WriteLine( "- Hit CTRL+C to stop the connection, and attempt to cleanup." );
+                    Console.WriteLine( "- Hit CTRL+BREAK to exit right away with no attempt to cleanup." );
+                    Console.WriteLine();
                     Console.WriteLine( "Have an issue? Need more help? File an issue: https://github.com/xforever1313/SshRunAs" );
                 }
                 else if( showVersion )
@@ -145,8 +149,12 @@ namespace SshRunAs
                             if( cancelArgs.SpecialKey == ConsoleSpecialKey.ControlC )
                             {
                                 cancelArgs.Cancel = true;
-                                logger.WarningWriteLine( 1, "CTRL+C was received, cleaning up..." );
+                                logger.WarningWriteLine( "CTRL+C was received, stopping SSH connection..." );
                                 cancelToken.Cancel();
+                            }
+                            else
+                            {
+                                logger.WarningWriteLine( "CTRL+BREAK was received, killing process..." );
                             }
                         };
 

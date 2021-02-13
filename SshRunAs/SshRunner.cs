@@ -47,6 +47,8 @@ namespace SshRunAs
             using( SshClient client = new SshClient( this.config.Server, this.config.Port, this.config.UserName, this.config.Password ) )
             {
                 client.Connect();
+                this.logger.WarningWriteLine( 2, "Client Version: " + client.ConnectionInfo.ClientVersion );
+                this.logger.WarningWriteLine( 2, "Server Version: " + client.ConnectionInfo.ServerVersion );
 
                 using( SshCommand command = client.CreateCommand( this.config.Command ) )
                 {
@@ -63,13 +65,8 @@ namespace SshRunAs
                     }
                     catch( OperationCanceledException )
                     {
-                        this.logger.WarningWriteLine( 1, "Cancelling Task...  Hit CTRL+BREAK instead to exit right away." );
-                        this.logger.WarningWriteLine( 2, "Cancelling Streams" );
-                        command.OutputStream.Dispose();
-                        command.ExtendedOutputStream.Dispose();
-                        this.logger.WarningWriteLine( 2, "Cancelling Async Task" );
+                        this.logger.WarningWriteLine( 1, "Cancelling Task..." );
                         command.CancelAsync();
-                        this.logger.WarningWriteLine( 2, "Ending Task Task" );
                         this.logger.WarningWriteLine( 1, "Task Cancelled" );
                         throw;
                     }
