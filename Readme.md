@@ -39,3 +39,5 @@ The reason why one passes in environment variable names and not the password dir
 Install
 -----
 You can install this right through NuGet.  At the moment, only the Windows version is posted to NuGet since Unix has a better alternative called [SshPass](https://linux.die.net/man/1/sshpass).  The NuGet package is called "[SshRunAs-Win-x64](https://www.nuget.org/packages/SshRunAs-Win-x64/)".  This is packaged as a dotnet core standalone app, so you don't need the runtime installed already.
+
+You can also install via [Chocolatey](https://chocolatey.org/packages/sshrunas) via the command ```choco install sshrunas```.

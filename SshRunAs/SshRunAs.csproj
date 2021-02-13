@@ -2,13 +2,22 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <PublishTrimmed>true</PublishTrimmed>
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="..\LICENSE_1_0.txt" Link="LICENSE_1_0.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\Credits.md" Link="Credits.md" />
+    <EmbeddedResource Include="..\Readme.md" Link="Readme.md" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Mono.Options" Version="5.3.0.1" />
-    <PackageReference Include="SSH.NET" Version="2016.1.0" />
+    <PackageReference Include="SSH.NET" Version="2020.0.1" />
   </ItemGroup>
 
   <Import Project="..\SethCS\SethCS\SethCS.projitems" Label="Shared" />

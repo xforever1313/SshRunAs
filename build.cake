@@ -75,6 +75,7 @@ Task( makeDistTarget )
 
         DotNetCorePublish( "./SshRunAs/SshRunAs.csproj", settings );
         CopyFile( "./LICENSE_1_0.txt", System.IO.Path.Combine( distFolder.ToString(), "License.txt" ) );
+        CopyFileToDirectory( "./Credits.md", distFolder );
         CopyFileToDirectory( "./Readme.md", distFolder );
     }
 ).Description( "Moves the files into directory so it can be distributed." ).

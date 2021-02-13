@@ -1,12 +1,15 @@
 ﻿//
-//          Copyright Seth Hendrick 2019.
+//          Copyright Seth Hendrick 2019-2021.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 //
 
 using System;
+using System.IO;
 using System.Reflection;
+using System.Text;
+using System.Threading;
 using Mono.Options;
 using SethCS.Basic;
 
@@ -21,6 +24,8 @@ namespace SshRunAs
                 bool showHelp = false;
                 bool showVersion = false;
                 bool showLicense = false;
+                bool showCredits = false;
+                bool showReadme = false;
 
                 int verbosity = 0;
 
@@ -30,7 +35,7 @@ namespace SshRunAs
                 OptionSet options = new OptionSet
                 {
                     {
-                        "h|help|/?",
+                        "h|help",
                         "Shows this message and exits.",
                         v => showHelp = ( v != null )
                     },
@@ -43,6 +48,16 @@ namespace SshRunAs
                         "license",
                         "Shows the license information and exits.",
                         v => showLicense = ( v != null )
+                    },
+                    {
+                        "readme",
+                        "Shows the readme as markdown and exits.",
+                        v => showReadme = ( v != null )
+                    },
+                    {
+                        "credits",
+                        "Shows the third-party credits information as markdown and exits.",
+                        v => showCredits = ( v != null )
                     },
                     {
                         "c=|command=",
@@ -94,47 +109,95 @@ namespace SshRunAs
 
                 options.Parse( args );
 
-                if ( showHelp )
+                if( showHelp )
                 {
                     Console.WriteLine( "Usage:  SshRunAs -s server -u userEnvVar -p passwordEnvVar -c command [-P port]" );
                     options.WriteOptionDescriptions( Console.Out );
                     Console.WriteLine();
-                    Console.WriteLine( "Have an issue? Need more help? File an issue: https://github.com/xforever1313/SSHPass.Net" );
+                    Console.WriteLine( "Exiting early:" );
+                    Console.WriteLine( "- Hit CTRL+C to stop the connection, and attempt to cleanup." );
+                    Console.WriteLine( "- Hit CTRL+BREAK to exit right away with no attempt to cleanup." );
+                    Console.WriteLine();
+                    Console.WriteLine( "Have an issue? Need more help? File an issue: https://github.com/xforever1313/SshRunAs" );
                 }
-                else if ( showVersion )
+                else if( showVersion )
                 {
                     ShowVersion();
                 }
-                else if ( showLicense )
+                else if( showLicense )
                 {
                     ShowLicense();
                 }
+                else if( showReadme )
+                {
+                    ShowReadme();
+                }
+                else if( showCredits )
+                {
+                    ShowCredits();
+                }
                 else
                 {
-                    GenericLogger logger = new GenericLogger( verbosity );
-                    logger.OnWriteLine += Logger_OnWriteLine;
-                    logger.OnErrorWriteLine += Logger_OnErrorWriteLine;
-                    logger.OnWarningWriteLine += Logger_OnWarningWriteLine;
-
-                    logger.WarningWriteLine( $"Running '{actualConfig.Command}' using password stored in '{actualConfig.PasswordEnvVarName}' on {actualConfig.Server}:{actualConfig.Port}" );
-
-                    using ( SshRunner runner = new SshRunner( actualConfig, logger ) )
+                    using( CancellationTokenSource cancelToken = new CancellationTokenSource() )
                     {
-                        int exitCode = runner.RunSsh();
-                        return exitCode;
+                        GenericLogger logger = new GenericLogger( verbosity );
+
+                        ConsoleCancelEventHandler onCtrlC = delegate ( object sender, ConsoleCancelEventArgs cancelArgs )
+                        {
+                            // Wait for the process to end gracefully if we get CTRL+C,
+                            // otherwise, let it die without clean up if we get CTRL+Break.
+                            if( cancelArgs.SpecialKey == ConsoleSpecialKey.ControlC )
+                            {
+                                cancelArgs.Cancel = true;
+                                logger.WarningWriteLine( "CTRL+C was received, stopping SSH connection..." );
+                                cancelToken.Cancel();
+                            }
+                            else
+                            {
+                                logger.WarningWriteLine( "CTRL+BREAK was received, killing process..." );
+                            }
+                        };
+
+                        try
+                        {
+                            Console.CancelKeyPress += onCtrlC;
+                            logger.OnWriteLine += Logger_OnWriteLine;
+                            logger.OnErrorWriteLine += Logger_OnErrorWriteLine;
+                            logger.OnWarningWriteLine += Logger_OnWarningWriteLine;
+
+                            logger.WarningWriteLine( $"Running '{actualConfig.Command}' using password stored in '{actualConfig.PasswordEnvVarName}' on {actualConfig.Server}:{actualConfig.Port}" );
+
+                            using( SshRunner runner = new SshRunner( actualConfig, logger ) )
+                            {
+                                int exitCode = runner.RunSsh( cancelToken.Token );
+                                return exitCode;
+                            }
+                        }
+                        finally
+                        {
+                            Console.CancelKeyPress -= onCtrlC;
+                            logger.OnWriteLine -= Logger_OnWriteLine;
+                            logger.OnErrorWriteLine -= Logger_OnErrorWriteLine;
+                            logger.OnWarningWriteLine -= Logger_OnWarningWriteLine;
+                        }
                     }
                 }
 
                 return 0;
             }
-            catch ( OptionException e )
+            catch( OptionException e )
             {
                 Console.WriteLine( "Invalid Arguments: " + e.Message );
                 Console.WriteLine();
 
                 return 1;
             }
-            catch ( Exception e )
+            catch( OperationCanceledException e )
+            {
+                Console.WriteLine( e.Message );
+                return 2;
+            }
+            catch( Exception e )
             {
                 Console.WriteLine( "Unexpected Exception: " );
                 Console.WriteLine( e.Message );
@@ -160,33 +223,11 @@ namespace SshRunAs
 
         private static void ShowLicense()
         {
-            const string license =
-@"SshRunAs - Copyright Seth Hendrick 2019.
+            StringBuilder license = new StringBuilder();
+            license.AppendLine( "SshRunAs - Copyright Seth Hendrick 2019-2021." );
+            license.AppendLine();
+            license.AppendLine( ReadResource( "SshRunAs.LICENSE_1_0.txt" ) );
 
-Boost Software License - Version 1.0 - August 17th, 2003
-
-Permission is hereby granted, free of charge, to any person or organization
-obtaining a copy of the software and accompanying documentation covered by
-this license (the ""Software"") to use, reproduce, display, distribute,
-execute, and transmit the Software, and to prepare derivative works of the
-Software, and to permit third-parties to whom the Software is furnished to
-do so, all subject to the following:
-
-The copyright notices in the Software and this entire statement, including
-the above license grant, this restriction and the following disclaimer,
-must be included in all copies of the Software, in whole or in part, and
-all derivative works of the Software, unless such copies or derivative
-works are solely in the form of machine-executable object code generated by
-a source language processor.
-
-THE SOFTWARE IS PROVIDED ""AS IS"", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE, TITLE AND NON-INFRINGEMENT. IN NO EVENT
-SHALL THE COPYRIGHT HOLDERS OR ANYONE DISTRIBUTING THE SOFTWARE BE LIABLE
-FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
-ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-";
             Console.WriteLine( license );
         }
 
@@ -195,6 +236,29 @@ DEALINGS IN THE SOFTWARE.
             Console.WriteLine(
                 Assembly.GetExecutingAssembly().GetName().Version
             );
+        }
+
+        private static void ShowReadme()
+        {
+            string readme = ReadResource( "SshRunAs.Readme.md" );
+            Console.WriteLine( readme );
+        }
+
+        private static void ShowCredits()
+        {
+            string credits = ReadResource( "SshRunAs.Credits.md" );
+            Console.WriteLine( credits );
+        }
+
+        private static string ReadResource( string resourceName )
+        {
+            using( Stream stream = typeof( Program ).Assembly.GetManifestResourceStream( resourceName ) )
+            {
+                using( StreamReader reader = new StreamReader( stream ) )
+                {
+                    return reader.ReadToEnd();
+                }
+            }
         }
     }
 }

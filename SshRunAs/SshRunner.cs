@@ -1,12 +1,11 @@
 ﻿//
-//          Copyright Seth Hendrick 2019.
+//          Copyright Seth Hendrick 2019-2021.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 //
 
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -41,23 +40,36 @@ namespace SshRunAs
         /// Runs the SSH process.
         /// </summary>
         /// <returns>The exit code of the process.</returns>
-        public int RunSsh()
+        public int RunSsh( CancellationToken cancelToken )
         {
             this.config.Validate();
 
             using( SshClient client = new SshClient( this.config.Server, this.config.Port, this.config.UserName, this.config.Password ) )
             {
                 client.Connect();
+                this.logger.WarningWriteLine( 2, "Client Version: " + client.ConnectionInfo.ClientVersion );
+                this.logger.WarningWriteLine( 2, "Server Version: " + client.ConnectionInfo.ServerVersion );
 
                 using( SshCommand command = client.CreateCommand( this.config.Command ) )
                 {
                     IAsyncResult task = command.BeginExecute();
 
                     // Using tasks seems to print things to the console better; it doesn't all just bunch up at the end.
-                    Task stdOutTask = AsyncWriteToStream( Console.OpenStandardOutput, command.OutputStream, task );
-                    Task stdErrTask = AsyncWriteToStream( Console.OpenStandardError, command.ExtendedOutputStream, task );
+                    Task stdOutTask = AsyncWriteToStream( Console.OpenStandardOutput, command.OutputStream, task, "STDOUT", cancelToken );
+                    Task stdErrTask = AsyncWriteToStream( Console.OpenStandardError, command.ExtendedOutputStream, task, "STDERR", cancelToken );
 
-                    Task.WaitAll( stdOutTask, stdErrTask );
+                    try
+                    {
+                        Task[] tasks = new Task[] { stdOutTask, stdErrTask };
+                        Task.WaitAll( tasks, cancelToken );
+                    }
+                    catch( OperationCanceledException )
+                    {
+                        this.logger.WarningWriteLine( 1, "Cancelling Task..." );
+                        command.CancelAsync();
+                        this.logger.WarningWriteLine( 1, "Task Cancelled" );
+                        throw;
+                    }
 
                     command.EndExecute( task );
 
@@ -70,7 +82,7 @@ namespace SshRunAs
             }
         }
 
-        private Task AsyncWriteToStream( Func<Stream> oStreamAction, Stream iStream, IAsyncResult sshTask )
+        private Task AsyncWriteToStream( Func<Stream> oStreamAction, Stream iStream, IAsyncResult sshTask, string context, CancellationToken cancelToken  )
         {
             return Task.Run(
                 async delegate()
@@ -81,15 +93,19 @@ namespace SshRunAs
                         {
                             while( sshTask.IsCompleted == false )
                             {
-                                await iStream.CopyToAsync( oStream );
-                                await oStream.FlushAsync();
-                                await Task.Delay( 500 ); // So we don't burn through CPU.
+                                await iStream.CopyToAsync( oStream, cancelToken );
+                                await oStream.FlushAsync( cancelToken );
+                                await Task.Delay( 500, cancelToken ); // So we don't burn through CPU.
                             }
 
                             // One more loop so we don't miss any last-minute output:
-                            await iStream.CopyToAsync( oStream );
-                            await oStream.FlushAsync();
+                            await iStream.CopyToAsync( oStream, cancelToken );
+                            await oStream.FlushAsync( cancelToken );
                         }
+                    }
+                    catch( OperationCanceledException )
+                    {
+                        this.logger.WarningWriteLine( 1, $"{context} cancelled" );
                     }
                     catch( Exception e )
                     {
