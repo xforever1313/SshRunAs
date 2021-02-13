@@ -113,7 +113,7 @@ namespace SshRunAs
                     Console.WriteLine( "Usage:  SshRunAs -s server -u userEnvVar -p passwordEnvVar -c command [-P port]" );
                     options.WriteOptionDescriptions( Console.Out );
                     Console.WriteLine();
-                    Console.WriteLine( "Have an issue? Need more help? File an issue: https://github.com/xforever1313/SSHPass.Net" );
+                    Console.WriteLine( "Have an issue? Need more help? File an issue: https://github.com/xforever1313/SshRunAs" );
                 }
                 else if( showVersion )
                 {
