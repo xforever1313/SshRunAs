@@ -1,5 +1,5 @@
 ﻿//
-//          Copyright Seth Hendrick 2019.
+//          Copyright Seth Hendrick 2019-2021.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
@@ -161,7 +161,7 @@ namespace SshRunAs
         private static void ShowLicense()
         {
             const string license =
-@"SshRunAs - Copyright Seth Hendrick 2019.
+@"SshRunAs - Copyright Seth Hendrick 2019-2021.
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
