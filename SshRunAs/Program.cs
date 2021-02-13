@@ -134,16 +134,25 @@ namespace SshRunAs
                 else
                 {
                     GenericLogger logger = new GenericLogger( verbosity );
-                    logger.OnWriteLine += Logger_OnWriteLine;
-                    logger.OnErrorWriteLine += Logger_OnErrorWriteLine;
-                    logger.OnWarningWriteLine += Logger_OnWarningWriteLine;
-
-                    logger.WarningWriteLine( $"Running '{actualConfig.Command}' using password stored in '{actualConfig.PasswordEnvVarName}' on {actualConfig.Server}:{actualConfig.Port}" );
-
-                    using( SshRunner runner = new SshRunner( actualConfig, logger ) )
+                    try
                     {
-                        int exitCode = runner.RunSsh();
-                        return exitCode;
+                        logger.OnWriteLine += Logger_OnWriteLine;
+                        logger.OnErrorWriteLine += Logger_OnErrorWriteLine;
+                        logger.OnWarningWriteLine += Logger_OnWarningWriteLine;
+
+                        logger.WarningWriteLine( $"Running '{actualConfig.Command}' using password stored in '{actualConfig.PasswordEnvVarName}' on {actualConfig.Server}:{actualConfig.Port}" );
+
+                        using( SshRunner runner = new SshRunner( actualConfig, logger ) )
+                        {
+                            int exitCode = runner.RunSsh();
+                            return exitCode;
+                        }
+                    }
+                    finally
+                    {
+                        logger.OnWriteLine -= Logger_OnWriteLine;
+                        logger.OnErrorWriteLine -= Logger_OnErrorWriteLine;
+                        logger.OnWarningWriteLine -= Logger_OnWarningWriteLine;
                     }
                 }
 
