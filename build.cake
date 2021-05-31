@@ -116,9 +116,37 @@ Task( nugetPackTarget )
             }
         );
 
+        files.Add(
+            new NuSpecContent
+            { 
+                Source = System.IO.Path.Combine( distFolder.ToString(), "Credits.md" ),
+                Target = "Credits.md"
+            }
+        );
+
         NuGetPackSettings settings = new NuGetPackSettings
         {
+            Id = "SshRunAs-Win-x64",
             Version = version,
+            Title = "SshRunAs",
+            Authors = new string[] { "Seth Hendrick" },
+            Description = "Allows one to run commands via SSH automatically while specifying a username/password.",
+            Summary = "Allows one to run commands via SSH automatically while specifying a username/password.",
+            License = new NuSpecLicense
+            {
+                Type = "expression",
+                Value = "BSL-1.0"
+            },
+            ProjectUrl = new Uri( "https://github.com/xforever1313/SshRunAs" ),
+            RequireLicenseAcceptance = false,
+            Repository = new NuGetRepository
+            {
+                Type = "git",
+                Url = "https://github.com/xforever1313/SshRunAs.git"
+            },
+            Copyright = "Copyright (c) Seth Hendrick",
+            Tags = new string[] { "xforever1313", "ssh", "runas", "password", "sshpass", "windows" },
+
             BasePath = distFolder,
             OutputDirectory = distFolder,
             Symbols = false,
@@ -126,7 +154,7 @@ Task( nugetPackTarget )
             Files = files
         };
 
-        NuGetPack( "./nuspec/SshRunAs.nuspec", settings );
+        NuGetPack( settings );
     }
 ).Description( "Builds the nuget package." )
 .IsDependentOn( makeDistTarget );
