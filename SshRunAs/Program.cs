@@ -19,6 +19,10 @@ namespace SshRunAs
 {
     class Program
     {
+        // ---------------- Fields ----------------
+
+        // ---------------- Constructor ----------------
+
         static int Main( string[] args )
         {
             try
@@ -28,6 +32,8 @@ namespace SshRunAs
                 bool showLicense = false;
                 bool showCredits = false;
                 bool showReadme = false;
+
+                bool dryRun = false;
 
                 int verbosity = 0;
 
@@ -55,6 +61,11 @@ namespace SshRunAs
                         "readme",
                         "Shows the readme as markdown and exits.",
                         v => showReadme = ( v != null )
+                    },
+                    {
+                        "dry_run|whatif|noop",
+                        "If specified, no action is taking other than printing the command to stdout.",
+                        v => dryRun = ( v != null )
                     },
                     {
                         "credits",
@@ -186,10 +197,17 @@ namespace SshRunAs
 
                             logger.WarningWriteLine( $"Running '{actualConfig.Command}' using password stored in '{actualConfig.PasswordEnvVarName}' on {actualConfig.Server}:{actualConfig.Port}" );
 
-                            using( SshRunner runner = new SshRunner( actualConfig, logger ) )
+                            if( dryRun == false )
                             {
-                                int exitCode = runner.RunSsh( cancelToken.Token );
-                                return exitCode;
+                                using( SshRunner runner = new SshRunner( actualConfig, logger ) )
+                                {
+                                    int exitCode = runner.RunSsh( cancelToken.Token );
+                                    return exitCode;
+                                }
+                            }
+                            else
+                            {
+                                logger.WarningWriteLine( "Dry run set, no action taken." );
                             }
                         }
                         finally
