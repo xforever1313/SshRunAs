@@ -23,6 +23,7 @@ namespace SshRunAs
 
         private readonly SshConfig config;
         private readonly GenericLogger logger;
+        private readonly LockFileManager lockFileManager;
 
         // ---------------- Constructor ----------------
 
@@ -30,6 +31,7 @@ namespace SshRunAs
         {
             this.config = config;
             this.logger = logger;
+            this.lockFileManager = new LockFileManager( config, logger );
         }
 
         // ---------------- Properties ----------------
@@ -44,6 +46,7 @@ namespace SshRunAs
         {
             this.config.Validate();
 
+            this.lockFileManager.CreateLockFile();
             using( SshClient client = new SshClient( this.config.Server, this.config.Port, this.config.UserName, this.config.Password ) )
             {
                 client.Connect();
@@ -68,6 +71,7 @@ namespace SshRunAs
                         this.logger.WarningWriteLine( 1, "Cancelling Task..." );
                         command.CancelAsync();
                         this.logger.WarningWriteLine( 1, "Task Cancelled" );
+                        this.lockFileManager.DeleteLockFile();
                         throw;
                     }
 
@@ -77,6 +81,7 @@ namespace SshRunAs
 
                     this.logger.WarningWriteLine( 1, "Process exited with exit code: " + exitStatus );
 
+                    this.lockFileManager.DeleteLockFile();
                     return exitStatus;
                 }
             }

@@ -12,6 +12,7 @@ using System.Text;
 using System.Threading;
 using Mono.Options;
 using SethCS.Basic;
+using SethCS.IO;
 
 namespace SshRunAs
 {
@@ -91,6 +92,16 @@ namespace SshRunAs
                         }
                     },
                     {
+                        "f=|lock_file=",
+                        $"Where to create a 'lock file'.  If this file exists, {nameof(SshRunAs)} will not execute.  " +
+                            $"When the command completes *OR* CTRL+C is sent to cancel, the lock file will be deleted.  " +
+                            $"If CTRL+BREAK is sent, the lock file will NOT be deleted.",
+                        v =>
+                        {
+                            actualConfig.LockFile = v;
+                        }
+                    },
+                    {
                         "P=|port=",
                         $"The port to connect to.  Defaulted to {defaultConfig.Port}.",
                         v =>
@@ -148,9 +159,16 @@ namespace SshRunAs
                             // otherwise, let it die without clean up if we get CTRL+Break.
                             if( cancelArgs.SpecialKey == ConsoleSpecialKey.ControlC )
                             {
-                                cancelArgs.Cancel = true;
-                                logger.WarningWriteLine( "CTRL+C was received, stopping SSH connection..." );
-                                cancelToken.Cancel();
+                                try
+                                {
+                                    cancelArgs.Cancel = true;
+                                    logger.WarningWriteLine( "CTRL+C was received, stopping SSH connection..." );
+                                    cancelToken.Cancel();
+                                }
+                                catch( Exception e )
+                                {
+                                    logger.ErrorWriteLine( "Caught exception when cancelling: " + Environment.NewLine + e.ToString() );
+                                }
                             }
                             else
                             {
@@ -197,28 +215,47 @@ namespace SshRunAs
                 Console.WriteLine( e.Message );
                 return 2;
             }
+            catch( LockFileExistsException e )
+            {
+                using( ConsoleColorResetter colorResetter = new ConsoleColorResetter( ConsoleColor.Red, null ) )
+                {
+                    Console.WriteLine( e.Message );
+                    return 3;
+                }
+            }
             catch( Exception e )
             {
-                Console.WriteLine( "Unexpected Exception: " );
-                Console.WriteLine( e.Message );
-
+                using( ConsoleColorResetter colorResetter = new ConsoleColorResetter( ConsoleColor.Red, null ) )
+                {
+                    Console.WriteLine( "Unexpected Exception: " );
+                    Console.WriteLine( e.Message );
+                }
                 return -1;
             }
         }
 
         private static void Logger_OnWarningWriteLine( string obj )
         {
-            Console.Write( "SshRunAs: " + obj );
+            using( ConsoleColorResetter colorResetter = new ConsoleColorResetter( ConsoleColor.Yellow, null ) )
+            {
+                Console.Write( "SshRunAs: " + obj );
+            }
         }
 
         private static void Logger_OnErrorWriteLine( string obj )
         {
-            Console.Error.Write( obj );
+            using( ConsoleColorResetter colorResetter = new ConsoleColorResetter( ConsoleColor.Red, null ) )
+            {
+                Console.Error.Write( obj );
+            }
         }
 
         private static void Logger_OnWriteLine( string obj )
         {
-            Console.Write( obj );
+            using( ConsoleColorResetter colorResetter = new ConsoleColorResetter( ConsoleColor.Green, null ) )
+            {
+                Console.Write( obj );
+            }
         }
 
         private static void ShowLicense()

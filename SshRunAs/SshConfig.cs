@@ -7,6 +7,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using SethCS.Exceptions;
 
 namespace SshRunAs
@@ -55,7 +56,7 @@ namespace SshRunAs
         public string PasswordEnvVarName { get; set; }
 
         public string Password
-        { 
+        {
             get
             {
                 return Environment.GetEnvironmentVariable( this.PasswordEnvVarName );
@@ -72,6 +73,13 @@ namespace SshRunAs
         /// </summary>
         public ushort Port { get; set; }
 
+        /// <summary>
+        /// Location of the lock file.
+        /// Use null or empty string to specify no lock file
+        /// is being used.
+        /// </summary>
+        public string LockFile { get; set; }
+
         // ---------------- Functions ----------------
 
         /// <summary>
@@ -81,35 +89,35 @@ namespace SshRunAs
         {
             List<string> errors = new List<string>();
 
-            if ( string.IsNullOrWhiteSpace( this.Command ) )
+            if( string.IsNullOrWhiteSpace( this.Command ) )
             {
                 errors.Add( nameof( Command ) + " can not be null, empty, or whitespace." );
             }
 
-            if ( string.IsNullOrWhiteSpace( this.UserNameEnvVarName ) )
+            if( string.IsNullOrWhiteSpace( this.UserNameEnvVarName ) )
             {
                 errors.Add( nameof( this.UserNameEnvVarName ) + " can not be null, empty, or whitespace." );
             }
-            else if ( string.IsNullOrEmpty( Environment.GetEnvironmentVariable( this.UserNameEnvVarName ) ) )
+            else if( string.IsNullOrEmpty( Environment.GetEnvironmentVariable( this.UserNameEnvVarName ) ) )
             {
                 errors.Add( "Given username environment variable is empty!" );
             }
 
-            if ( string.IsNullOrWhiteSpace( this.PasswordEnvVarName ) )
+            if( string.IsNullOrWhiteSpace( this.PasswordEnvVarName ) )
             {
                 errors.Add( nameof( this.PasswordEnvVarName ) + " can not be null, empty, or whitespace." );
             }
-            else if ( string.IsNullOrEmpty( Environment.GetEnvironmentVariable( this.PasswordEnvVarName ) ) )
+            else if( string.IsNullOrEmpty( Environment.GetEnvironmentVariable( this.PasswordEnvVarName ) ) )
             {
                 errors.Add( "Given password environment variable is empty!" );
             }
 
-            if ( string.IsNullOrWhiteSpace( this.Server ) )
+            if( string.IsNullOrWhiteSpace( this.Server ) )
             {
                 errors.Add( nameof( Server ) + " can not be null, empty, or whitespace." );
             }
 
-            if ( errors.Count != 0 )
+            if( errors.Count != 0 )
             {
                 throw new ListedValidationException( "Errors when validating " + nameof( SshConfig ), errors );
             }
