@@ -145,7 +145,7 @@ Task( nugetPackTarget )
                 Url = "https://github.com/xforever1313/SshRunAs.git"
             },
             Copyright = "Copyright (c) Seth Hendrick",
-            Tags = new string[] { "xforever1313", "ssh", "runas", "password", "sshpass", "windows" },
+            Tags = new string[] { "sshrunas", "ssh", "runas", "password", "sshpass", "windows", "xforever1313" },
 
             BasePath = distFolder,
             OutputDirectory = distFolder,
@@ -239,45 +239,130 @@ var chocoTask = Task( chocoPackTarget )
     {
         DirectoryPath chocoDir = installFolder.Combine( "Chocolatey" );
         DirectoryPath outputDirectory = chocoDir.Combine( "bin" );
-        FilePath chocoNuspec = chocoDir.CombineWithFilePath( "sshrunas.nuspec" );
-        FilePath installScript = chocoDir.CombineWithFilePath( "tools/chocolateyinstall.ps1" );
+        DirectoryPath workingDirectory = chocoDir.Combine( "obj" );
+        DirectoryPath toolsDirectory = workingDirectory.Combine( "tools" );
+
+        FilePath installScript = toolsDirectory.CombineWithFilePath( "chocolateyinstall.ps1" );
+        FilePath uninstallScript = toolsDirectory.CombineWithFilePath( "chocolateyuninstall.ps1" );
 
         EnsureDirectoryExists( outputDirectory );
         CleanDirectory( outputDirectory );
 
+        EnsureDirectoryExists( workingDirectory );
+        CleanDirectory( workingDirectory );
+
+        EnsureDirectoryExists( toolsDirectory );
+
         // First, need to set the checksum of the MSI file.
         string checksum = System.IO.File.ReadAllText( msiShaFile.ToString() ).Trim();
 
-        Regex checksumLineRegex = new Regex(
-            @"checksum64\s*=\s*'.+'",
-            RegexOptions.Compiled | RegexOptions.ExplicitCapture
+        // Second, need to create the install.ps1 & uninstall/ps1 files.
+        string installPs1 = 
+$@"
+$ErrorActionPreference = 'Stop';
+$toolsDir   = ""$(Split-Path -parent $MyInvocation.MyCommand.Definition)""
+$fileLocation      = Join-Path $toolsDir 'SshRunAs.msi'
+
+$packageArgs = @{{
+  packageName   = $env:ChocolateyPackageName
+  unzipLocation = $toolsDir
+  fileType      = 'msi'
+  file          = $fileLocation
+  softwareName  = 'SshRunAs*'
+  checksum    = '{checksum}'
+  checksumType= 'sha256'
+
+  # MSI
+  silentArgs    = ""/qn /norestart /l*v `""$($env:TEMP)\$($packageName).$($env:chocolateyPackageVersion).MsiInstall.log`""""
+  validExitCodes= @(0, 3010, 1641)
+}}
+
+Install-ChocolateyPackage @packageArgs
+";
+
+        string uninstallPs1 =
+@"
+$ErrorActionPreference = 'Stop';
+$packageArgs = @{
+  packageName   = $env:ChocolateyPackageName
+  softwareName  = 'SshRunAs*'
+  fileType      = 'MSI'
+  silentArgs    = ""/qn /norestart""
+  validExitCodes= @(0, 3010, 1605, 1614, 1641)
+}
+
+$uninstalled = $false
+[array]$key = Get-UninstallRegistryKey -SoftwareName $packageArgs['softwareName']
+
+if ($key.Count -eq 1) {
+  $key | % { 
+    $packageArgs['file'] = ""$($_.UninstallString)""
+    
+    if ($packageArgs['fileType'] -eq 'MSI') {
+      $packageArgs['silentArgs'] = ""$($_.PSChildName) $($packageArgs['silentArgs'])""
+      $packageArgs['file'] = ''
+    } else {
+    }
+
+    Uninstall-ChocolateyPackage @packageArgs
+  }
+} elseif ($key.Count -eq 0) {
+  Write-Warning ""$packageName has already been uninstalled by other means.""
+} elseif ($key.Count -gt 1) {
+  Write-Warning ""$($key.Count) matches found!""
+  Write-Warning ""To prevent accidental data loss, no programs will be uninstalled.""
+  Write-Warning ""Please alert package maintainer the following keys were matched:""
+  $key | % {Write-Warning ""- $($_.DisplayName)""}
+}
+";
+        System.IO.File.WriteAllText( installScript.ToString(), installPs1 );
+        System.IO.File.WriteAllText( uninstallScript.ToString(), uninstallPs1 );
+        CopyFileToDirectory(
+            msiPath,
+            toolsDirectory
         );
-        List<string> lines = new List<string>();
-        foreach( string line in System.IO.File.ReadAllLines( installScript.ToString() ) )
+
+        List<ChocolateyNuSpecContent> files = new List<ChocolateyNuSpecContent>();
+        foreach( FilePath file in GetFiles( toolsDirectory.Combine( "*" ).ToString() ) )
         {
-            if( checksumLineRegex.IsMatch( line ) )
-            {
-                lines.Add(
-                    $"  checksum64    = '{checksum}'"
-                );
-            }
-            else
-            {
-                lines.Add( line );
-            }
+            files.Add(
+                new ChocolateyNuSpecContent
+                {
+                    Source = file.ToString(),
+                    Target = "tools"
+                }
+            );
         }
-        System.IO.File.WriteAllLines( installScript.ToString(), lines );
 
         // With our checksum set, pack it!
         ChocolateyPackSettings settings = new ChocolateyPackSettings
         {
+            // Package Specific Section
+            Id = "sshrunas",
+            Version = version,
+            PackageSourceUrl = new Uri( "https://github.com/xforever1313/SshRunAs" ),
+            Owners = new string[] { "Seth Hendrick" },
+
+            // Software Specific Section
+            Title = "SshRunAs (Install)",
+            Authors = new string[] { "Seth Hendrick" },
+            ProjectUrl = new Uri( "https://github.com/xforever1313/SshRunAs" ),
+            Copyright = "Copyright © Seth Hendrick 2019-2021",
+            LicenseUrl = new Uri( "https://raw.githubusercontent.com/xforever1313/SshRunAs/master/LICENSE_1_0.txt" ),
+            RequireLicenseAcceptance = false,
+            ProjectSourceUrl = new Uri( "https://github.com/xforever1313/SshRunAs" ),
+            BugTrackerUrl = new Uri( "https://github.com/xforever1313/SshRunAs/issues" ),
+            Tags = new string[] { "sshrunas", "ssh", "runas", "password", "sshpass", "windows", "xforever1313", "admin" },
+            Summary = "Run a process via SSH and a user can pass in a username/password.",
+            Description = "See Readme: https://github.com/xforever1313/SshRunAs/blob/master/Readme.md",
+            Files = files,
+
+            // Cake-Related Section
             OutputDirectory = outputDirectory,
-            WorkingDirectory = chocoDir,
-            Version = version
+            WorkingDirectory = workingDirectory
         };
 
         ChocolateyPack(
-            chocoNuspec,
             settings
         );
     }
