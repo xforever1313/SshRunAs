@@ -127,7 +127,7 @@ Task( nugetPackTarget )
         files.Add(
             new NuSpecContent
             { 
-                Source = new FilePath( "Assets/icon.png" ).ToString(),
+                Source = new FilePath( "../Assets/icon.png" ).ToString(),
                 Target = "icon.png"
             }
         );
@@ -365,6 +365,7 @@ if ($key.Count -eq 1) {
             Summary = "Run a process via SSH and a user can pass in a username/password.",
             Description = "See Readme: https://github.com/xforever1313/SshRunAs/blob/master/Readme.md",
             Files = files,
+            IconUrl = new Uri( "https://github.com/xforever1313/SshRunAs/raw/master/Assets/icon.png" ),
 
             // Cake-Related Section
             OutputDirectory = outputDirectory,
