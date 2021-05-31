@@ -124,6 +124,14 @@ Task( nugetPackTarget )
             }
         );
 
+        files.Add(
+            new NuSpecContent
+            { 
+                Source = new FilePath( "Assets/icon.png" ).ToString(),
+                Target = "icon.png"
+            }
+        );
+
         NuGetPackSettings settings = new NuGetPackSettings
         {
             Id = "SshRunAs-Win-x64",
@@ -146,6 +154,7 @@ Task( nugetPackTarget )
             },
             Copyright = "Copyright (c) Seth Hendrick",
             Tags = new string[] { "sshrunas", "ssh", "runas", "password", "sshpass", "windows", "xforever1313" },
+            Icon = "icon.png",
 
             BasePath = distFolder,
             OutputDirectory = distFolder,
