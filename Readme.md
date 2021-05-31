@@ -53,11 +53,11 @@ Exit Codes
 ----
 SshRunAs will return the exit code of the command that was run on the remote server.  However,
 it will also return the following exit codes in specific conditions.:
-0 - Command ran successfully
-13 - Unhandled/Unknown Exception
-14 - Invalid Arguments passed in.
-15 - Command Cancelled.
-16 - Lockfile detected, command not run.
+* 0 - Command ran successfully
+* 13 - Unhandled/Unknown Exception
+* 14 - Invalid Arguments passed in.
+* 15 - Command Cancelled.
+* 16 - Lockfile detected, command not run.
 
 Note: These numbers were chosen because they seem like numbers most applications
 will not use when exiting; thus one should be able to tell if the exit code was because of SshRunAs itself,
