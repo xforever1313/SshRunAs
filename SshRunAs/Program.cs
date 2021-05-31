@@ -21,6 +21,8 @@ namespace SshRunAs
     {
         // ---------------- Fields ----------------
 
+        private static bool noColor = false;
+
         // ---------------- Constructor ----------------
 
         static int Main( string[] args )
@@ -63,9 +65,14 @@ namespace SshRunAs
                         v => showReadme = ( v != null )
                     },
                     {
-                        "dry_run|whatif|noop",
+                        "dryrun|dry_run|whatif|noop",
                         "If specified, no action is taking other than printing the command to stdout.",
                         v => dryRun = ( v != null )
+                    },
+                    {
+                        "no_color|nocolor",
+                        $"If specified, {nameof( SshRunAs )} will not change the console's colors.",
+                        v => noColor = ( v != null )
                     },
                     {
                         "credits",
@@ -94,7 +101,7 @@ namespace SshRunAs
                     },
                     {
                         "v=|verbosity=",
-                        $"The verbosity of the output.  0 for no messages from SshRunAs.  Defaulted to 0.",
+                        $"The verbosity of the output.  0 for no messages from {nameof( SshRunAs )}.  Defaulted to 0.",
                         v =>
                         {
                             if( int.TryParse( v, out verbosity ) == false )
@@ -105,7 +112,7 @@ namespace SshRunAs
                     },
                     {
                         "f=|lock_file=",
-                        $"Where to create a 'lock file'.  If this file exists, {nameof(SshRunAs)} will not execute.  " +
+                        $"Where to create a 'lock file'.  If this file exists, {nameof( SshRunAs )} will not execute.  " +
                             $"When the command completes *OR* CTRL+C is sent to cancel, the lock file will be deleted.  " +
                             $"If CTRL+BREAK is sent, the lock file will NOT be deleted.",
                         v =>
@@ -224,7 +231,7 @@ namespace SshRunAs
             }
             catch( OptionException e )
             {
-                using( ConsoleColorResetter colorResetter = new ConsoleColorResetter( ConsoleColor.Red, null ) )
+                using( ConsoleColorResetter colorResetter = new ConsoleColorResetter( GetColor( ConsoleColor.Red ), null ) )
                 {
                     Console.WriteLine( "Invalid Arguments: " + e.Message );
                     Console.WriteLine();
@@ -234,7 +241,7 @@ namespace SshRunAs
             }
             catch( ArgumentException e )
             {
-                using( ConsoleColorResetter colorResetter = new ConsoleColorResetter( ConsoleColor.Red, null ) )
+                using( ConsoleColorResetter colorResetter = new ConsoleColorResetter( GetColor( ConsoleColor.Red ), null ) )
                 {
                     Console.WriteLine( "Invalid Arguments: " + e.Message );
                     Console.WriteLine();
@@ -244,7 +251,7 @@ namespace SshRunAs
             }
             catch( ListedValidationException e )
             {
-                using( ConsoleColorResetter colorResetter = new ConsoleColorResetter( ConsoleColor.Red, null ) )
+                using( ConsoleColorResetter colorResetter = new ConsoleColorResetter( GetColor( ConsoleColor.Red ), null ) )
                 {
                     Console.WriteLine( "Invalid Arguments: " + Environment.NewLine + e.Message );
                     Console.WriteLine();
@@ -259,7 +266,7 @@ namespace SshRunAs
             }
             catch( LockFileExistsException e )
             {
-                using( ConsoleColorResetter colorResetter = new ConsoleColorResetter( ConsoleColor.Red, null ) )
+                using( ConsoleColorResetter colorResetter = new ConsoleColorResetter( GetColor( ConsoleColor.Red ), null ) )
                 {
                     Console.WriteLine( e.Message );
                     return 16;
@@ -267,7 +274,7 @@ namespace SshRunAs
             }
             catch( Exception e )
             {
-                using( ConsoleColorResetter colorResetter = new ConsoleColorResetter( ConsoleColor.Red, null ) )
+                using( ConsoleColorResetter colorResetter = new ConsoleColorResetter( GetColor( ConsoleColor.Red ), null ) )
                 {
                     Console.WriteLine( "Unexpected Exception: " );
                     Console.WriteLine( e.Message );
@@ -278,15 +285,15 @@ namespace SshRunAs
 
         private static void Logger_OnWarningWriteLine( string obj )
         {
-            using( ConsoleColorResetter colorResetter = new ConsoleColorResetter( ConsoleColor.Yellow, null ) )
+            using( ConsoleColorResetter colorResetter = new ConsoleColorResetter( GetColor( ConsoleColor.Yellow ), null ) )
             {
-                Console.Write( "SshRunAs: " + obj );
+                Console.Write( $"{nameof( SshRunAs )}: " + obj );
             }
         }
 
         private static void Logger_OnErrorWriteLine( string obj )
         {
-            using( ConsoleColorResetter colorResetter = new ConsoleColorResetter( ConsoleColor.Red, null ) )
+            using( ConsoleColorResetter colorResetter = new ConsoleColorResetter( GetColor( ConsoleColor.Red ), null ) )
             {
                 Console.Error.Write( obj );
             }
@@ -294,7 +301,7 @@ namespace SshRunAs
 
         private static void Logger_OnWriteLine( string obj )
         {
-            using( ConsoleColorResetter colorResetter = new ConsoleColorResetter( ConsoleColor.Green, null ) )
+            using( ConsoleColorResetter colorResetter = new ConsoleColorResetter( GetColor( ConsoleColor.Green ), null ) )
             {
                 Console.Write( obj );
             }
@@ -303,7 +310,7 @@ namespace SshRunAs
         private static void ShowLicense()
         {
             StringBuilder license = new StringBuilder();
-            license.AppendLine( "SshRunAs - Copyright Seth Hendrick 2019-2021." );
+            license.AppendLine( $"{nameof( SshRunAs ) }- Copyright Seth Hendrick 2019-2021." );
             license.AppendLine();
             license.AppendLine( ReadResource( "SshRunAs.LICENSE_1_0.txt" ) );
 
@@ -337,6 +344,18 @@ namespace SshRunAs
                 {
                     return reader.ReadToEnd();
                 }
+            }
+        }
+
+        private static ConsoleColor? GetColor( ConsoleColor desiredColor )
+        {
+            if( noColor )
+            {
+                return null;
+            }
+            else
+            {
+                return desiredColor;
             }
         }
     }
