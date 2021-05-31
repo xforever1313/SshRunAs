@@ -36,6 +36,34 @@ set PASSWD=SuperSecretPassword
 
 The reason why one passes in environment variable names and not the password directly into the command line is because if someone opens [htop](https://hisham.hm/htop/), or [Process Explorer](https://docs.microsoft.com/en-us/sysinternals/downloads/process-explorer), they can view the command-line arguments and therefore get the password.
 
+Lock Files
+----
+By specifying the "-l" or "--lock_file" argument, once can create a lock file.  The way it works is if the lockfile does not
+exist, SshRunAs will create it, and it will delete it when the Ssh Command completes.  Meanwhile,
+if the lockfile exists already, SshRunAs will not run the command at all, and exit with a return code of 3.
+This can be useful to prevent multiple commands from running at once.
+
+Canceling
+----
+There are two ways to cancel a command in progress.  First is by sending CTRL+C, the second is by sending CTRL+BREAK (or CTRL+Scroll Lock).
+CTRL+C will gracefully cancel the SSH process, and try to clean everything up.  CTRL+BREAK will out-right kill the process,
+and no cleanup will happen.  CTRL+C will delete the lock file, CTRL+BREAK will not.
+
+Exit Codes
+----
+SshRunAs will return the exit code of the command that was run on the remote server.  However,
+it will also return the following exit codes in specific conditions.:
+0 - Command ran successfully
+13 - Unhandled/Unknown Exception
+14 - Invalid Arguments passed in.
+15 - Command Cancelled.
+16 - Lockfile detected, command not run.
+
+Note: These numbers were chosen because they seem like numbers most applications
+will not use when exiting; thus one should be able to tell if the exit code was because of SshRunAs itself,
+or the command it ran.  However, if the command that was run on the remove server just so happens
+to match the above error codes, one won't be able to tell the difference between SshRunAs having an issue, or the command that was run.
+
 Install
 -----
 You can install this right through NuGet.  At the moment, only the Windows version is posted to NuGet since Unix has a better alternative called [SshPass](https://linux.die.net/man/1/sshpass).  The NuGet package is called "[SshRunAs-Win-x64](https://www.nuget.org/packages/SshRunAs-Win-x64/)".  This is packaged as a dotnet core standalone app, so you don't need the runtime installed already.

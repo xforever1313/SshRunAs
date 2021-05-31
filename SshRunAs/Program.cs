@@ -12,6 +12,7 @@ using System.Text;
 using System.Threading;
 using Mono.Options;
 using SethCS.Basic;
+using SethCS.Exceptions;
 using SethCS.IO;
 
 namespace SshRunAs
@@ -205,22 +206,45 @@ namespace SshRunAs
             }
             catch( OptionException e )
             {
-                Console.WriteLine( "Invalid Arguments: " + e.Message );
-                Console.WriteLine();
+                using( ConsoleColorResetter colorResetter = new ConsoleColorResetter( ConsoleColor.Red, null ) )
+                {
+                    Console.WriteLine( "Invalid Arguments: " + e.Message );
+                    Console.WriteLine();
+                }
 
-                return 1;
+                return 14;
+            }
+            catch( ArgumentException e )
+            {
+                using( ConsoleColorResetter colorResetter = new ConsoleColorResetter( ConsoleColor.Red, null ) )
+                {
+                    Console.WriteLine( "Invalid Arguments: " + e.Message );
+                    Console.WriteLine();
+                }
+
+                return 14;
+            }
+            catch( ListedValidationException e )
+            {
+                using( ConsoleColorResetter colorResetter = new ConsoleColorResetter( ConsoleColor.Red, null ) )
+                {
+                    Console.WriteLine( "Invalid Arguments: " + Environment.NewLine + e.Message );
+                    Console.WriteLine();
+                }
+
+                return 14;
             }
             catch( OperationCanceledException e )
             {
                 Console.WriteLine( e.Message );
-                return 2;
+                return 15;
             }
             catch( LockFileExistsException e )
             {
                 using( ConsoleColorResetter colorResetter = new ConsoleColorResetter( ConsoleColor.Red, null ) )
                 {
                     Console.WriteLine( e.Message );
-                    return 3;
+                    return 16;
                 }
             }
             catch( Exception e )
@@ -230,7 +254,7 @@ namespace SshRunAs
                     Console.WriteLine( "Unexpected Exception: " );
                     Console.WriteLine( e.Message );
                 }
-                return -1;
+                return 13;
             }
         }
 
