@@ -1,0 +1,9 @@
+The MSI bundled with this package is the same MSI that is posted to the file server at https://files.shendrick.net/projects/sshrunas/releases/.
+
+The directory that contains the release on the file server contains a .sha256 file.  For example, for version 2.0.0, the MSI
+will be located at https://files.shendrick.net/projects/sshrunas/releases/2.0.0/SshRunAs.msi, while the .sha256 is a text file located at
+https://files.shendrick.net/projects/sshrunas/releases/2.0.0/SshRunAs.msi.sha256
+
+The value in the sha256 file will match the value in ChocolateyInstall.ps1.
+
+One can also download the .msi from the file server, get the sha256 sum of it.  It will match the value in ChocolateyInstall.ps1.

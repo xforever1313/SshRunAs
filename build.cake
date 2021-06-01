@@ -343,6 +343,22 @@ if ($key.Count -eq 1) {
             );
         }
 
+        files.Add(
+            new ChocolateyNuSpecContent
+            {
+                Source = File( "LICENSE_1_0.txt" ).ToString(),
+                Target = "License.txt"
+            }
+        );
+
+        files.Add(
+            new ChocolateyNuSpecContent
+            {
+                Source = chocoDir.CombineWithFilePath( File( "VERIFICATION.txt" ) ).ToString(),
+                Target = "VERIFICATION.txt"
+            }
+        );
+
         // With our checksum set, pack it!
         ChocolateyPackSettings settings = new ChocolateyPackSettings
         {
