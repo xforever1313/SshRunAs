@@ -21,6 +21,8 @@
     <PackageReference Include="SSH.NET" Version="2020.0.1" />
   </ItemGroup>
 
-  <Import Project="..\SethCS\SethCS\SethCS.projitems" Label="Shared" />
+  <ItemGroup>
+    <ProjectReference Include="..\SethCS\LibSethCS\LibSethCS.csproj" />
+  </ItemGroup>
 
 </Project>
