@@ -21,7 +21,7 @@ FilePath msiShaFile = File( msiPath.ToString() + ".sha256" );
 
 // This is the version of this software,
 // update before making a new release.
-const string version = "3.0.0";
+const string version = "3.0.1";
 
 DotNetCoreMSBuildSettings msBuildSettings = new DotNetCoreMSBuildSettings();
 
