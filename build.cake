@@ -345,7 +345,7 @@ Install-ChocolateyPackage @packageArgs
             Summary = "Run a process via SSH and a user can pass in a username/password.",
             Description = readmeContents,
             Files = files,
-            IconUrl = new Uri( "https://github.com/xforever1313/SshRunAs/raw/master/Assets/icon.png" ),
+            IconUrl = new Uri( "https://rawcdn.githack.com/xforever1313/SshRunAs/b92587025b0ce210a7de335d931960073496de36/Assets/icon.png" ),
 
             // Cake-Related Section
             OutputDirectory = outputDirectory,
