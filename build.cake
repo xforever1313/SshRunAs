@@ -22,7 +22,7 @@ FilePath msiShaFile = File( msiPath.ToString() + ".sha256" );
 
 // This is the version of this software,
 // update before making a new release.
-const string version = "4.0.0";
+const string version = "4.0.1";
 
 DotNetMSBuildSettings msBuildSettings = new DotNetMSBuildSettings();
 
@@ -51,7 +51,7 @@ Task( buildReleaseTarget )
 void Build( string config )
 {
     msBuildSettings.SetConfiguration( config );
-    DotNetBuildSettings settings = new DotNetBuildSettings
+    var settings = new DotNetBuildSettings
     {
         MSBuildSettings = msBuildSettings
     };
@@ -65,7 +65,7 @@ Task( makeDistTarget )
         EnsureDirectoryExists( distFolder );
         CleanDirectory( distFolder );
 
-        DotNetPublishSettings settings = new DotNetPublishSettings
+        var settings = new DotNetPublishSettings
         {
             OutputDirectory = distFolder,
             Configuration = "Release",
@@ -86,7 +86,7 @@ Task( nugetPackTarget )
 .Does(
     () =>
     {
-        List<NuSpecContent> files = new List<NuSpecContent>(
+        var files = new List<NuSpecContent>(
             GetFiles( System.IO.Path.Combine( distFolder.ToString(), "*.dll" ) )
                 .Select( file => new NuSpecContent { Source = file.ToString(), Target = "tools" } )
         );
@@ -133,7 +133,7 @@ Task( nugetPackTarget )
             }
         );
 
-        NuGetPackSettings settings = new NuGetPackSettings
+        var settings = new NuGetPackSettings
         {
             Id = "SshRunAs-Win-x64",
             Version = version,
@@ -182,7 +182,7 @@ Does(
 
         Information( "Starting Heat" );
 
-        HeatSettings heatSettings = new HeatSettings
+        var heatSettings = new HeatSettings
         {
             ComponentGroupName = "SshRunAs", // -cg
             Platform = "x64",
@@ -206,7 +206,7 @@ Does(
 
         Information( "Starting Candle" );
 
-        CandleSettings candleSettings = new CandleSettings
+        var candleSettings = new CandleSettings
         {
             WorkingDirectory = msiWorkDir.ToString(),
             ToolPath = $@"C:\Program Files (x86)\WiX Toolset v{wixVersion}\bin\candle.exe"
@@ -218,7 +218,7 @@ Does(
 
         Information( "Starting Light" );
 
-        LightSettings lightSettings = new LightSettings
+        var lightSettings = new LightSettings
         {
             RawArguments = $"-ext WixUIExtension -cultures:en-us -b {distFolder.ToString()}",
             OutputFile = msiPath,
@@ -322,10 +322,20 @@ Install-ChocolateyPackage @packageArgs
             }
         );
 
-        string readmeContents = System.IO.File.ReadAllText( "Readme.md" );
+        string[] readmeContents = System.IO.File.ReadAllLines( "Readme.md" );
+        var description = new StringBuilder();
+        foreach( string line in readmeContents )
+        {
+            if( line.StartsWith( "## Usage" ) )
+            {
+                break;
+            }
+
+            description.AppendLine( line );
+        }
 
         // With our checksum set, pack it!
-        ChocolateyPackSettings settings = new ChocolateyPackSettings
+        var settings = new ChocolateyPackSettings
         {
             // Package Specific Section
             Id = "sshrunas",
@@ -344,7 +354,7 @@ Install-ChocolateyPackage @packageArgs
             BugTrackerUrl = new Uri( "https://github.com/xforever1313/SshRunAs/issues" ),
             Tags = new string[] { "sshrunas", "ssh", "runas", "password", "sshpass", "windows", "admin" },
             Summary = "Run a process via SSH and a user can pass in a username/password.",
-            Description = readmeContents,
+            Description = description.ToString(),
             Files = files,
             IconUrl = new Uri( "https://rawcdn.githack.com/xforever1313/SshRunAs/b92587025b0ce210a7de335d931960073496de36/Assets/icon.png" ),
 
