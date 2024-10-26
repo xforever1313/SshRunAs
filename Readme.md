@@ -17,9 +17,9 @@ Honestly, if you need to use this, you should reconsider all other options, such
 
 This should not be used when:
 
- * You can use SSH Keys (Just use OpenSSH in that case).
- * Someone can view your process's environment variables (Passwords are stored in plaintext there).  Typically a user needs root or admin to do this anyways.
- * You are on Linux.  Linux has a better tool called [SshPass](https://linux.die.net/man/1/sshpass), use that instead.
+* You can use SSH Keys (Just use OpenSSH in that case).
+* Someone can view your process's environment variables (Passwords are stored in plaintext there).  Typically a user needs root or admin to do this anyways.
+* You are on Linux.  Linux has a better tool called [SshPass](https://linux.die.net/man/1/sshpass), use that instead.
 
 ## Usage
 
