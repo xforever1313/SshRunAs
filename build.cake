@@ -336,7 +336,7 @@ Install-ChocolateyPackage @packageArgs
             Title = "SshRunAs (Install)",
             Authors = new string[] { "Seth Hendrick" },
             ProjectUrl = new Uri( "https://github.com/xforever1313/SshRunAs" ),
-            Copyright = "Copyright © Seth Hendrick 2019-2022",
+            Copyright = "Copyright © Seth Hendrick 2019-2024",
             LicenseUrl = new Uri( "https://raw.githubusercontent.com/xforever1313/SshRunAs/master/LICENSE_1_0.txt" ),
             RequireLicenseAcceptance = false,
             ProjectSourceUrl = new Uri( "https://github.com/xforever1313/SshRunAs" ),
