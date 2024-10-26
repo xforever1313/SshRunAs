@@ -1,5 +1,5 @@
 ﻿//
-//          Copyright Seth Hendrick 2019-2021.
+//          Copyright Seth Hendrick 2019-2024.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
@@ -208,8 +208,25 @@ namespace SshRunAs
                             {
                                 using( SshRunner runner = new SshRunner( actualConfig, logger ) )
                                 {
-                                    int exitCode = runner.RunSsh( cancelToken.Token );
-                                    return exitCode;
+                                    SshResult result = runner.RunSsh( cancelToken.Token );
+                                    if( result.ExitCode.HasValue )
+                                    {
+                                        return result.ExitCode.Value;
+                                    }
+                                    else if( string.IsNullOrWhiteSpace( result.ExitSignal ) == false )
+                                    {
+                                        logger.ErrorWriteLine(
+                                            $"SSH process terminated violently for reason: {result.ExitSignal}"
+                                        );
+                                        return 20;
+                                    }
+                                    else
+                                    {
+                                        logger.ErrorWriteLine(
+                                            "SSH Process exited with no exit code or exit signal"
+                                        );
+                                        return 21;
+                                    }
                                 }
                             }
                             else
@@ -310,7 +327,7 @@ namespace SshRunAs
         private static void ShowLicense()
         {
             StringBuilder license = new StringBuilder();
-            license.AppendLine( $"{nameof( SshRunAs ) }- Copyright Seth Hendrick 2019-2021." );
+            license.AppendLine( $"{nameof( SshRunAs ) }- Copyright Seth Hendrick 2019-2024." );
             license.AppendLine();
             license.AppendLine( ReadResource( "SshRunAs.LICENSE_1_0.txt" ) );
 

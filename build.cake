@@ -6,6 +6,7 @@ const string makeDistTarget = "make_dist";
 const string nugetPackTarget = "nuget_pack";
 const string buildMsiTarget = "build_msi";
 const string chocoPackTarget = "choco_pack";
+const string wixVersion = "3.14";
 
 string target = Argument( "target", buildTarget );
 bool noBuild = Argument<bool>( "no_build", false );
@@ -21,9 +22,9 @@ FilePath msiShaFile = File( msiPath.ToString() + ".sha256" );
 
 // This is the version of this software,
 // update before making a new release.
-const string version = "3.0.1";
+const string version = "4.0.0";
 
-DotNetCoreMSBuildSettings msBuildSettings = new DotNetCoreMSBuildSettings();
+DotNetMSBuildSettings msBuildSettings = new DotNetMSBuildSettings();
 
 // Sets the assembly version.
 msBuildSettings.WithProperty( "Version", version )
@@ -50,11 +51,11 @@ Task( buildReleaseTarget )
 void Build( string config )
 {
     msBuildSettings.SetConfiguration( config );
-    DotNetCoreBuildSettings settings = new DotNetCoreBuildSettings
+    DotNetBuildSettings settings = new DotNetBuildSettings
     {
         MSBuildSettings = msBuildSettings
     };
-    DotNetCoreBuild( sln.ToString(), settings );
+    DotNetBuild( sln.ToString(), settings );
 }
 
 Task( makeDistTarget )
@@ -64,7 +65,7 @@ Task( makeDistTarget )
         EnsureDirectoryExists( distFolder );
         CleanDirectory( distFolder );
 
-        DotNetCorePublishSettings settings = new DotNetCorePublishSettings
+        DotNetPublishSettings settings = new DotNetPublishSettings
         {
             OutputDirectory = distFolder,
             Configuration = "Release",
@@ -73,7 +74,7 @@ Task( makeDistTarget )
             MSBuildSettings = msBuildSettings
         };
 
-        DotNetCorePublish( "./SshRunAs/SshRunAs.csproj", settings );
+        DotNetPublish( "./SshRunAs/SshRunAs.csproj", settings );
         CopyFile( "./LICENSE_1_0.txt", System.IO.Path.Combine( distFolder.ToString(), "License.txt" ) );
         CopyFileToDirectory( "./Credits.md", distFolder );
         CopyFileToDirectory( "./Readme.md", distFolder );
@@ -191,7 +192,7 @@ Does(
             SuppressVb6Com = true,             // -svb6
             Template = WiXTemplateType.Product,// -template product
             Transform = wixDir.CombineWithFilePath( File( "SshRunAs.xslt" ) ).ToString(),
-            ToolPath = @"C:\Program Files (x86)\WiX Toolset v3.11\bin\heat.exe"
+            ToolPath = $@"C:\Program Files (x86)\WiX Toolset v{wixVersion}\bin\heat.exe"
         };
 
         WiXHeat(
@@ -208,7 +209,7 @@ Does(
         CandleSettings candleSettings = new CandleSettings
         {
             WorkingDirectory = msiWorkDir.ToString(),
-            ToolPath = @"C:\Program Files (x86)\WiX Toolset v3.11\bin\candle.exe"
+            ToolPath = $@"C:\Program Files (x86)\WiX Toolset v{wixVersion}\bin\candle.exe"
         };
 
         WiXCandle( wxsFile.ToString(), candleSettings );
@@ -221,7 +222,7 @@ Does(
         {
             RawArguments = $"-ext WixUIExtension -cultures:en-us -b {distFolder.ToString()}",
             OutputFile = msiPath,
-            ToolPath = @"C:\Program Files (x86)\WiX Toolset v3.11\bin\light.exe"
+            ToolPath = $@"C:\Program Files (x86)\WiX Toolset v{wixVersion}\bin\light.exe"
         };
 
         FilePath wixObjFile = msiWorkDir.CombineWithFilePath( $"SshRunAs.wixobj" );
@@ -336,7 +337,7 @@ Install-ChocolateyPackage @packageArgs
             Title = "SshRunAs (Install)",
             Authors = new string[] { "Seth Hendrick" },
             ProjectUrl = new Uri( "https://github.com/xforever1313/SshRunAs" ),
-            Copyright = "Copyright © Seth Hendrick 2019-2022",
+            Copyright = "Copyright © Seth Hendrick 2019-2024",
             LicenseUrl = new Uri( "https://raw.githubusercontent.com/xforever1313/SshRunAs/master/LICENSE_1_0.txt" ),
             RequireLicenseAcceptance = false,
             ProjectSourceUrl = new Uri( "https://github.com/xforever1313/SshRunAs" ),
@@ -362,5 +363,9 @@ if( noBuild == false )
 {
     chocoTask.IsDependentOn( buildMsiTarget );
 }
+
+Task( "all" )
+.IsDependentOn( chocoPackTarget )
+.IsDependentOn( nugetPackTarget );
 
 RunTarget( target );

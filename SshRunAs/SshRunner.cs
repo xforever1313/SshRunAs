@@ -1,5 +1,5 @@
 ﻿//
-//          Copyright Seth Hendrick 2019-2021.
+//          Copyright Seth Hendrick 2019-2024.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
@@ -41,8 +41,7 @@ namespace SshRunAs
         /// <summary>
         /// Runs the SSH process.
         /// </summary>
-        /// <returns>The exit code of the process.</returns>
-        public int RunSsh( CancellationToken cancelToken )
+        public SshResult RunSsh( CancellationToken cancelToken )
         {
             this.config.Validate();
 
@@ -77,12 +76,19 @@ namespace SshRunAs
 
                     command.EndExecute( task );
 
-                    int exitStatus = command.ExitStatus;
+                    var result = new SshResult( command.ExitStatus, command.ExitSignal );
 
-                    this.logger.WarningWriteLine( 1, "Process exited with exit code: " + exitStatus );
+                    if( result.ExitCode is not null )
+                    {
+                        this.logger.WarningWriteLine( 1, "Process exited with exit code: " + result.ExitCode );
+                    }
+                    if( string.IsNullOrWhiteSpace( command.ExitSignal ) == false )
+                    {
+                        this.logger.WarningWriteLine( 1, "Process exited with exit signal: " + result.ExitSignal );
+                    }
 
                     this.lockFileManager.DeleteLockFile();
-                    return exitStatus;
+                    return result;
                 }
             }
         }
