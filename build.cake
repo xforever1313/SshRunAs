@@ -6,6 +6,7 @@ const string makeDistTarget = "make_dist";
 const string nugetPackTarget = "nuget_pack";
 const string buildMsiTarget = "build_msi";
 const string chocoPackTarget = "choco_pack";
+const string wixVersion = "3.14";
 
 string target = Argument( "target", buildTarget );
 bool noBuild = Argument<bool>( "no_build", false );
@@ -191,7 +192,7 @@ Does(
             SuppressVb6Com = true,             // -svb6
             Template = WiXTemplateType.Product,// -template product
             Transform = wixDir.CombineWithFilePath( File( "SshRunAs.xslt" ) ).ToString(),
-            ToolPath = @"C:\Program Files (x86)\WiX Toolset v3.11\bin\heat.exe"
+            ToolPath = $@"C:\Program Files (x86)\WiX Toolset v{wixVersion}\bin\heat.exe"
         };
 
         WiXHeat(
@@ -208,7 +209,7 @@ Does(
         CandleSettings candleSettings = new CandleSettings
         {
             WorkingDirectory = msiWorkDir.ToString(),
-            ToolPath = @"C:\Program Files (x86)\WiX Toolset v3.11\bin\candle.exe"
+            ToolPath = $@"C:\Program Files (x86)\WiX Toolset v{wixVersion}\bin\candle.exe"
         };
 
         WiXCandle( wxsFile.ToString(), candleSettings );
@@ -221,7 +222,7 @@ Does(
         {
             RawArguments = $"-ext WixUIExtension -cultures:en-us -b {distFolder.ToString()}",
             OutputFile = msiPath,
-            ToolPath = @"C:\Program Files (x86)\WiX Toolset v3.11\bin\light.exe"
+            ToolPath = $@"C:\Program Files (x86)\WiX Toolset v{wixVersion}\bin\light.exe"
         };
 
         FilePath wixObjFile = msiWorkDir.CombineWithFilePath( $"SshRunAs.wixobj" );
@@ -362,5 +363,9 @@ if( noBuild == false )
 {
     chocoTask.IsDependentOn( buildMsiTarget );
 }
+
+Task( "all" )
+.IsDependentOn( chocoPackTarget )
+.IsDependentOn( nugetPackTarget );
 
 RunTarget( target );
