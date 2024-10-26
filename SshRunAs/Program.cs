@@ -208,8 +208,25 @@ namespace SshRunAs
                             {
                                 using( SshRunner runner = new SshRunner( actualConfig, logger ) )
                                 {
-                                    int exitCode = runner.RunSsh( cancelToken.Token );
-                                    return exitCode;
+                                    SshResult result = runner.RunSsh( cancelToken.Token );
+                                    if( result.ExitCode.HasValue )
+                                    {
+                                        return result.ExitCode.Value;
+                                    }
+                                    else if( string.IsNullOrWhiteSpace( result.ExitSignal ) == false )
+                                    {
+                                        logger.ErrorWriteLine(
+                                            $"SSH process terminated violently for reason: {result.ExitSignal}"
+                                        );
+                                        return 20;
+                                    }
+                                    else
+                                    {
+                                        logger.ErrorWriteLine(
+                                            "SSH Process exited with no exit code or exit signal"
+                                        );
+                                        return 21;
+                                    }
                                 }
                             }
                             else
