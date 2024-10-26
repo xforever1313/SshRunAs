@@ -23,7 +23,7 @@ FilePath msiShaFile = File( msiPath.ToString() + ".sha256" );
 // update before making a new release.
 const string version = "4.0.0";
 
-DotNetCoreMSBuildSettings msBuildSettings = new DotNetCoreMSBuildSettings();
+DotNetMSBuildSettings msBuildSettings = new DotNetMSBuildSettings();
 
 // Sets the assembly version.
 msBuildSettings.WithProperty( "Version", version )
@@ -50,11 +50,11 @@ Task( buildReleaseTarget )
 void Build( string config )
 {
     msBuildSettings.SetConfiguration( config );
-    DotNetCoreBuildSettings settings = new DotNetCoreBuildSettings
+    DotNetBuildSettings settings = new DotNetBuildSettings
     {
         MSBuildSettings = msBuildSettings
     };
-    DotNetCoreBuild( sln.ToString(), settings );
+    DotNetBuild( sln.ToString(), settings );
 }
 
 Task( makeDistTarget )
@@ -64,7 +64,7 @@ Task( makeDistTarget )
         EnsureDirectoryExists( distFolder );
         CleanDirectory( distFolder );
 
-        DotNetCorePublishSettings settings = new DotNetCorePublishSettings
+        DotNetPublishSettings settings = new DotNetPublishSettings
         {
             OutputDirectory = distFolder,
             Configuration = "Release",
@@ -73,7 +73,7 @@ Task( makeDistTarget )
             MSBuildSettings = msBuildSettings
         };
 
-        DotNetCorePublish( "./SshRunAs/SshRunAs.csproj", settings );
+        DotNetPublish( "./SshRunAs/SshRunAs.csproj", settings );
         CopyFile( "./LICENSE_1_0.txt", System.IO.Path.Combine( distFolder.ToString(), "License.txt" ) );
         CopyFileToDirectory( "./Credits.md", distFolder );
         CopyFileToDirectory( "./Readme.md", distFolder );
